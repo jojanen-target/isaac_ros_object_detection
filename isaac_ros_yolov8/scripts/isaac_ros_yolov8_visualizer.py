@@ -26,90 +26,16 @@ import cv_bridge
 import message_filters
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import QoSDurabilityPolicy
+from rclpy.qos import QoSHistoryPolicy
+from rclpy.qos import QoSProfile
+from rclpy.qos import QoSReliabilityPolicy
 from sensor_msgs.msg import Image
 from vision_msgs.msg import Detection2DArray
 
 names = {
-        0: 'person',
-        1: 'bicycle',
-        2: 'car',
-        3: 'motorcycle',
-        4: 'airplane',
-        5: 'bus',
-        6: 'train',
-        7: 'truck',
-        8: 'boat',
-        9: 'traffic light',
-        10: 'fire hydrant',
-        11: 'stop sign',
-        12: 'parking meter',
-        13: 'bench',
-        14: 'bird',
-        15: 'cat',
-        16: 'dog',
-        17: 'horse',
-        18: 'sheep',
-        19: 'cow',
-        20: 'elephant',
-        21: 'bear',
-        22: 'zebra',
-        23: 'giraffe',
-        24: 'backpack',
-        25: 'umbrella',
-        26: 'handbag',
-        27: 'tie',
-        28: 'suitcase',
-        29: 'frisbee',
-        30: 'skis',
-        31: 'snowboard',
-        32: 'sports ball',
-        33: 'kite',
-        34: 'baseball bat',
-        35: 'baseball glove',
-        36: 'skateboard',
-        37: 'surfboard',
-        38: 'tennis racket',
-        39: 'bottle',
-        40: 'wine glass',
-        41: 'cup',
-        42: 'fork',
-        43: 'knife',
-        44: 'spoon',
-        45: 'bowl',
-        46: 'banana',
-        47: 'apple',
-        48: 'sandwich',
-        49: 'orange',
-        50: 'broccoli',
-        51: 'carrot',
-        52: 'hot dog',
-        53: 'pizza',
-        54: 'donut',
-        55: 'cake',
-        56: 'chair',
-        57: 'couch',
-        58: 'potted plant',
-        59: 'bed',
-        60: 'dining table',
-        61: 'toilet',
-        62: 'tv',
-        63: 'laptop',
-        64: 'mouse',
-        65: 'remote',
-        66: 'keyboard',
-        67: 'cell phone',
-        68: 'microwave',
-        69: 'oven',
-        70: 'toaster',
-        71: 'sink',
-        72: 'refrigerator',
-        73: 'book',
-        74: 'clock',
-        75: 'vase',
-        76: 'scissors',
-        77: 'teddy bear',
-        78: 'hair drier',
-        79: 'toothbrush',
+        0: 'ptag',
 }
 
 
@@ -121,32 +47,52 @@ class Yolov8Visualizer(Node):
     def __init__(self):
         super().__init__('yolov8_visualizer')
         self._bridge = cv_bridge.CvBridge()
+
+        output_image_qos = QoSProfile(
+            history=QoSHistoryPolicy.KEEP_LAST,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            depth=1)
+
         self._processed_image_pub = self.create_publisher(
-            Image, 'yolov8_processed_image',  self.QUEUE_SIZE)
+            Image, 'yolov8_processed_image',  output_image_qos)
 
         self._detections_subscription = message_filters.Subscriber(
             self,
             Detection2DArray,
             'detections_output')
+
         self._image_subscription = message_filters.Subscriber(
             self,
             Image,
             'image')
 
-        self.time_synchronizer = message_filters.TimeSynchronizer(
-            [self._detections_subscription, self._image_subscription],
-            self.QUEUE_SIZE)
+        # self.time_synchronizer = message_filters.TimeSynchronizer(
+        #     [self._detections_subscription, self._image_subscription],
+        #     self.QUEUE_SIZE)
+
+
+        self.time_synchronizer = message_filters.ApproximateTimeSynchronizer(
+            [ self._image_subscription, self._detections_subscription],
+            self.QUEUE_SIZE, 2.0)
 
         self.time_synchronizer.registerCallback(self.detections_callback)
 
-    def detections_callback(self, detections_msg, img_msg):
+    def detections_callback(self, img_msg, detections_msg):
+        print("got an detection and image")
+
         txt_color = (255, 0, 255)
         cv2_img = self._bridge.imgmsg_to_cv2(img_msg)
         for detection in detections_msg.detections:
-            center_x = detection.bbox.center.position.x
-            center_y = detection.bbox.center.position.y
-            width = detection.bbox.size_x
-            height = detection.bbox.size_y
+
+            cvimg_h, cvimg_w, *_ = cv2_img.shape
+            scale_x = cvimg_w / 640
+            scale_y = cvimg_h / 640
+
+            center_x = detection.bbox.center.position.x * scale_x
+            center_y = detection.bbox.center.position.y * scale_y
+            width = detection.bbox.size_x * scale_x
+            height = detection.bbox.size_y * scale_y
 
             label = names[int(detection.results[0].hypothesis.class_id)]
             conf_score = detection.results[0].hypothesis.score

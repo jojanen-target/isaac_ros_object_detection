@@ -81,6 +81,7 @@ def generate_launch_description():
     # YOLOv8 Decoder parameters
     confidence_threshold = LaunchConfiguration('confidence_threshold')
     nms_threshold = LaunchConfiguration('nms_threshold')
+    num_of_classes = LaunchConfiguration('num_of_classes')
 
     encoder_node = ComposableNode(
         name='dnn_image_encoder',
@@ -120,6 +121,7 @@ def generate_launch_description():
         parameters=[{
             'confidence_threshold': confidence_threshold,
             'nms_threshold': nms_threshold,
+            'num_of_classes' : num_of_classes
         }]
     )
 
