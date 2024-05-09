@@ -54,12 +54,12 @@ private:
   rclcpp::Publisher<vision_msgs::msg::Detection2DArray>::SharedPtr pub_;
 
   // Name of tensor in NitrosTensorList
-  std::string tensor_name_{};
+  std::string tensor_name_;
 
   // YOLOv8 Decoder Parameters
-  double confidence_threshold_{};
-  double nms_threshold_{};
-  int32_t num_of_classes_{};
+  int num_of_classes_;
+  double confidence_threshold_;
+  double nms_threshold_;
 };
 
 }  // namespace yolov8

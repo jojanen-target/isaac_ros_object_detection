@@ -52,10 +52,10 @@ YoloV8DecoderNode::YoloV8DecoderNode(const rclcpp::NodeOptions options)
       std::placeholders::_1))},
   pub_{create_publisher<vision_msgs::msg::Detection2DArray>(
       "detections_output", 50)},
-  tensor_name_{declare_parameter<std::string>("tensor_name", "output_tensor")},
-  confidence_threshold_{declare_parameter<double>("confidence_threshold", 0.25)},
-  nms_threshold_{declare_parameter<double>("nms_threshold", 0.45)},
-  num_of_classes_{declare_parameter<int32_t>("num_of_classes", 1)}
+  tensor_name_(declare_parameter<std::string>("tensor_name", "output_tensor")),
+  num_of_classes_(declare_parameter<int>("num_of_classes", 1)),
+  confidence_threshold_(declare_parameter<double>("confidence_threshold", 0.25)),
+  nms_threshold_(declare_parameter<double>("nms_threshold", 0.45))
 {}
 
 YoloV8DecoderNode::~YoloV8DecoderNode() = default;
